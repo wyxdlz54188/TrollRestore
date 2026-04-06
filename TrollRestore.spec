@@ -1,40 +1,91 @@
 # -*- mode: python ; coding: utf-8 -*-
-from pathlib import Path
-import site
-import platform
-import pytun_pmd3
-from PyInstaller.utils.hooks import copy_metadata
 
-site_packages_path = site.getsitepackages()[0]
-
-datas = []
-datas += copy_metadata('readchar')
-
+import sys
+import os
+from PyInstaller.utils.hooks import collect_submodules, collect_data_files
 
 block_cipher = None
 
-# if windows
-binaries = []
-if platform.system() == 'Windows':
-    binaries += [(f"{Path(pytun_pmd3.__file__).parent}/wintun/*", "pytun_pmd3/wintun/bin")]
-else:
-    binaries += [(f"{Path(pytun_pmd3.__file__).parent}", "pytun_pmd3")]
+# 收集 pymobiledevice3 的所有子模块
+pymobiledevice3_hiddenimports = collect_submodules('pymobiledevice3')
+sparserestore_hiddenimports = collect_submodules('sparserestore')
 
 a = Analysis(
     ['trollstore.py'],
     pathex=[],
-    binaries=binaries,
-    datas=datas,
-    hiddenimports=['zeroconf', 'zeroconf._utils.ipaddress', 'zeroconf._handlers.answers'],
+    binaries=[],
+    datas=[],
+    hiddenimports=[
+        'pymobiledevice3',
+        'pymobiledevice3.cli',
+        'pymobiledevice3.cli.cli_common',
+        'pymobiledevice3.lockdown',
+        'pymobiledevice3.services',
+        'pymobiledevice3.services.diagnostics',
+        'pymobiledevice3.services.installation_proxy',
+        'pymobiledevice3.services.mobilebackup2',
+        'pymobiledevice3.services.afc',
+        'pymobiledevice3.services.springboard',
+        'sparserestore',
+        'sparserestore.backup',
+        'sparserestore.perform_restore',
+        'bpylist2',
+        'rich',
+        'rich.console',
+        'rich.progress',
+        'click',
+        'requests',
+        'packaging',
+        'packaging.version',
+        'packaging.specifiers',
+        'readchar',
+        'inquirer3',
+        'inquirer3.prompt',
+        'inquirer3.render',
+        'inquirer3.render.console',
+        'inquirer3.events',
+        'construct',
+        'construct_typing',
+        'asn1',
+        'coloredlogs',
+        'pygments',
+        'hexdump',
+        'daemonize',
+        'gpxpy',
+        'pykdebugparser',
+        'pyusb',
+        'tqdm',
+        'xonsh',
+        'parameter_decorators',
+        'pygnuutils',
+        'cryptography',
+        'pycrashreport',
+        'fastapi',
+        'uvicorn',
+        'wsproto',
+        'Pillow',
+        'ifaddr',
+        'hyperframe',
+        'srptools',
+        'qh3',
+        'developer_disk_image',
+        'opack2',
+        'psutil',
+        'prompt_toolkit',
+        'python_pcapng',
+        'plumbum',
+        'pyimg4',
+        'typer',
+        'typer_injector',
+        'defusedxml'
+    ] + pymobiledevice3_hiddenimports + sparserestore_hiddenimports,
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
     excludes=[],
-    win_no_prefer_redirects=False,
-    win_private_assemblies=False,
-    cipher=block_cipher,
     noarchive=False,
 )
+
 pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)
 
 exe = EXE(

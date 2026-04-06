@@ -22,12 +22,37 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install pyinstaller
-        pip install -r requirements.txt
+        pip install pymobiledevice3 bpylist2 rich click requests packaging readchar inquirer3
     
-    - name: Build with spec file
+    - name: Build executable
       run: |
-        pyinstaller TrollRestore.spec --clean --noconfirm
-        copy dist\TrollRestore.exe dist\TrollRestore-Windows-x64.exe
+        pyinstaller --onefile `
+          --name "TrollRestore-Windows-x64.exe" `
+          --console `
+          --hidden-import pymobiledevice3 `
+          --hidden-import pymobiledevice3.cli `
+          --hidden-import pymobiledevice3.cli.cli_common `
+          --hidden-import pymobiledevice3.lockdown `
+          --hidden-import pymobiledevice3.services `
+          --hidden-import pymobiledevice3.services.diagnostics `
+          --hidden-import pymobiledevice3.services.installation_proxy `
+          --hidden-import sparserestore `
+          --hidden-import sparserestore.backup `
+          --hidden-import sparserestore.perform_restore `
+          --hidden-import bpylist2 `
+          --hidden-import rich `
+          --hidden-import click `
+          --hidden-import requests `
+          --hidden-import packaging `
+          --hidden-import readchar `
+          --hidden-import inquirer3 `
+          --collect-all pymobiledevice3 `
+          --collect-all sparserestore `
+          --collect-all readchar `
+          --collect-all inquirer3 `
+          --copy-metadata readchar `
+          --copy-metadata inquirer3 `
+          trollstore.py
     
     - name: Upload artifact
       uses: actions/upload-artifact@v4
@@ -50,12 +75,21 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install pyinstaller
-        pip install -r requirements.txt
+        pip install pymobiledevice3 bpylist2 rich click requests packaging readchar inquirer3
     
-    - name: Build 32-bit with spec file
+    - name: Build executable
       run: |
-        pyinstaller TrollRestore.spec --clean --noconfirm
-        copy dist\TrollRestore.exe dist\TrollRestore-Windows-x86.exe
+        pyinstaller --onefile `
+          --name "TrollRestore-Windows-x86.exe" `
+          --console `
+          --hidden-import pymobiledevice3 `
+          --hidden-import sparserestore `
+          --hidden-import readchar `
+          --collect-all pymobiledevice3 `
+          --collect-all sparserestore `
+          --collect-all readchar `
+          --copy-metadata readchar `
+          trollstore.py
     
     - name: Upload artifact
       uses: actions/upload-artifact@v4
@@ -80,12 +114,21 @@ jobs:
       run: |
         pip install --upgrade pip
         pip install pyinstaller
-        pip install -r requirements.txt
+        pip install pymobiledevice3 bpylist2 rich click requests packaging readchar inquirer3
     
-    - name: Build with spec file
+    - name: Build executable
       run: |
-        pyinstaller TrollRestore.spec --clean --noconfirm
-        mv dist/TrollRestore dist/TrollRestore-macOS-Intel
+        pyinstaller --onefile \
+          --name "TrollRestore-macOS-Intel" \
+          --console \
+          --hidden-import pymobiledevice3 \
+          --hidden-import sparserestore \
+          --hidden-import readchar \
+          --collect-all pymobiledevice3 \
+          --collect-all sparserestore \
+          --collect-all readchar \
+          --copy-metadata readchar \
+          trollstore.py
     
     - name: Upload artifact
       uses: actions/upload-artifact@v4
@@ -110,12 +153,21 @@ jobs:
       run: |
         pip install --upgrade pip
         pip install pyinstaller
-        pip install -r requirements.txt
+        pip install pymobiledevice3 bpylist2 rich click requests packaging readchar inquirer3
     
-    - name: Build with spec file
+    - name: Build executable
       run: |
-        pyinstaller TrollRestore.spec --clean --noconfirm
-        mv dist/TrollRestore dist/TrollRestore-macOS-ARM64
+        pyinstaller --onefile \
+          --name "TrollRestore-macOS-ARM64" \
+          --console \
+          --hidden-import pymobiledevice3 \
+          --hidden-import sparserestore \
+          --hidden-import readchar \
+          --collect-all pymobiledevice3 \
+          --collect-all sparserestore \
+          --collect-all readchar \
+          --copy-metadata readchar \
+          trollstore.py
     
     - name: Upload artifact
       uses: actions/upload-artifact@v4
@@ -142,12 +194,50 @@ jobs:
       run: |
         pip install --upgrade pip
         pip install pyinstaller
-        pip install -r requirements.txt
+        pip install pymobiledevice3 bpylist2 rich click requests packaging
     
-    - name: Build with spec file
+    - name: Create patch script for readchar
       run: |
-        pyinstaller TrollRestore.spec --clean --noconfirm
-        mv dist/TrollRestore dist/TrollRestore-Linux-x86_64
+        cat > patch_metadata.py << 'EOF'
+        import sys
+        import importlib.metadata
+        
+        # 修复 readchar 包元数据问题
+        try:
+            importlib.metadata.version('readchar')
+        except importlib.metadata.PackageNotFoundError:
+            # 手动创建 readchar 的元数据
+            from importlib.metadata import Distribution
+        
+            class FakeDistribution(Distribution):
+                def __init__(self):
+                    self._metadata = {'Version': '4.0.0', 'Name': 'readchar'}
+                
+                @property
+                def metadata(self):
+                    return self._metadata
+                
+                def read_text(self, filename):
+                    return None
+                
+                def locate_file(self, path):
+                    return path
+            
+            # 注册假的 distribution
+            if not hasattr(importlib.metadata, '_distributions'):
+                importlib.metadata._distributions = {}
+            importlib.metadata._distributions['readchar'] = FakeDistribution()
+        EOF
+    
+    - name: Build with patch
+      run: |
+        pyinstaller --onefile \
+          --name "TrollRestore-Linux-x86_64" \
+          --console \
+          --hidden-import pymobiledevice3 \
+          --hidden-import sparserestore \
+          --runtime-hook patch_metadata.py \
+          trollstore.py
     
     - name: Upload artifact
       uses: actions/upload-artifact@v4
@@ -175,12 +265,55 @@ jobs:
       run: |
         pip install --upgrade pip
         pip install pyinstaller
-        pip install -r requirements.txt
+        pip install pymobiledevice3 bpylist2 rich click requests packaging
     
-    - name: Build with spec file
+    - name: Create patch script for readchar
       run: |
-        pyinstaller TrollRestore.spec --clean --noconfirm
-        mv dist/TrollRestore dist/TrollRestore-Linux-ARM64
+        cat > patch_metadata.py << 'EOF'
+        import sys
+        import importlib.metadata
+        
+        # 修复 readchar 包元数据问题
+        try:
+            importlib.metadata.version('readchar')
+        except importlib.metadata.PackageNotFoundError:
+            # 手动创建 readchar 的元数据
+            from importlib.metadata import Distribution
+        
+            class FakeDistribution(Distribution):
+                def __init__(self):
+                    self._metadata = {'Version': '4.0.0', 'Name': 'readchar'}
+                
+                @property
+                def metadata(self):
+                    return self._metadata
+                
+                def read_text(self, filename):
+                    return None
+                
+                def locate_file(self, path):
+                    return path
+            
+            # 注册假的 distribution
+            if not hasattr(importlib.metadata, '_distributions'):
+                importlib.metadata._distributions = {}
+            importlib.metadata._distributions['readchar'] = FakeDistribution()
+        EOF
+    
+    - name: Build with patch
+      run: |
+        pyinstaller --onefile \
+          --name "TrollRestore-Linux-ARM64" \
+          --console \
+          --hidden-import pymobiledevice3 \
+          --hidden-import sparserestore \
+          --runtime-hook patch_metadata.py \
+          trollstore.py
+    
+    - name: Verify build
+      run: |
+        file dist/TrollRestore-Linux-ARM64
+        ldd dist/TrollRestore-Linux-ARM64 || true
     
     - name: Upload artifact
       uses: actions/upload-artifact@v4

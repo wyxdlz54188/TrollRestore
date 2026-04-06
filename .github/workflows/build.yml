@@ -3,6 +3,8 @@ name: Build TrollRestore
 on:
   push:
     branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
   workflow_dispatch:
 
 jobs:
@@ -16,45 +18,53 @@ jobs:
       with:
         python-version: '3.11'
     
-    - name: Cache pip
-      uses: actions/cache@v4
-      with:
-        path: ~\AppData\Local\pip\Cache
-        key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
-    
-    - name: Install PyInstaller
-      run: pip install pyinstaller
-    
-    - name: Install packages (skip problematic ones)
+    - name: Install dependencies
       run: |
-        pip install bpylist2 rich click requests packaging
-        pip install pymobiledevice3 --no-deps
-        pip install construct construct-typing asn1 coloredlogs pygments hexdump daemonize gpxpy
-        pip install pykdebugparser pyusb tqdm xonsh parameter_decorators pygnuutils
-        pip install cryptography pycrashreport fastapi uvicorn wsproto Pillow inquirer3
-        pip install ipsw_parser ifaddr hyperframe srptools qh3 developer_disk_image
-        pip install opack2 psutil prompt_toolkit python-pcapng plumbum pyimg4
-        pip install typer typer-injector defusedxml
+        python -m pip install --upgrade pip
+        pip install pyinstaller
+        pip install -r requirements.txt
     
-    - name: Build executable
+    - name: Build with spec file
       run: |
-        pyinstaller --onefile `
-          --name "TrollRestore-Windows-x64.exe" `
-          --console `
-          --hidden-import pymobiledevice3 `
-          --hidden-import sparserestore `
-          --collect-all pymobiledevice3 `
-          --collect-all sparserestore `
-          trollstore.py
+        pyinstaller trollstore.spec --clean --noconfirm
+        copy dist\TrollRestore.exe dist\TrollRestore-Windows-x64.exe
     
-    - name: Upload
+    - name: Upload artifact
       uses: actions/upload-artifact@v4
       with:
         name: TrollRestore-Windows-x64
         path: dist/TrollRestore-Windows-x64.exe
 
-  build-macos:
-    runs-on: macos-latest
+  build-windows-32:
+    runs-on: windows-latest
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup Python (32-bit)
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+        architecture: 'x86'
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install pyinstaller
+        pip install -r requirements.txt
+    
+    - name: Build 32-bit with spec file
+      run: |
+        pyinstaller trollstore.spec --clean --noconfirm
+        copy dist\TrollRestore.exe dist\TrollRestore-Windows-x86.exe
+    
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: TrollRestore-Windows-x86
+        path: dist/TrollRestore-Windows-x86.exe
+
+  build-macos-intel:
+    runs-on: macos-13
     steps:
     - uses: actions/checkout@v4
     
@@ -68,27 +78,52 @@ jobs:
     
     - name: Install dependencies
       run: |
+        pip install --upgrade pip
         pip install pyinstaller
         pip install -r requirements.txt
     
-    - name: Build executable
+    - name: Build with spec file
       run: |
-        pyinstaller --onefile \
-          --name "TrollRestore-macOS" \
-          --console \
-          --hidden-import pymobiledevice3 \
-          --hidden-import sparserestore \
-          --collect-all pymobiledevice3 \
-          --collect-all sparserestore \
-          trollstore.py
+        pyinstaller trollstore.spec --clean --noconfirm
+        mv dist/TrollRestore dist/TrollRestore-macOS-Intel
     
-    - name: Upload
+    - name: Upload artifact
       uses: actions/upload-artifact@v4
       with:
-        name: TrollRestore-macOS
-        path: dist/TrollRestore-macOS
+        name: TrollRestore-macOS-Intel
+        path: dist/TrollRestore-macOS-Intel
 
-  build-linux:
+  build-macos-arm:
+    runs-on: macos-14
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+    
+    - name: Install libusb
+      run: brew install libusb
+    
+    - name: Install dependencies
+      run: |
+        pip install --upgrade pip
+        pip install pyinstaller
+        pip install -r requirements.txt
+    
+    - name: Build with spec file
+      run: |
+        pyinstaller trollstore.spec --clean --noconfirm
+        mv dist/TrollRestore dist/TrollRestore-macOS-ARM64
+    
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: TrollRestore-macOS-ARM64
+        path: dist/TrollRestore-macOS-ARM64
+
+  build-linux-amd64:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
@@ -99,26 +134,56 @@ jobs:
         python-version: '3.11'
     
     - name: Install libusb
-      run: sudo apt-get update && sudo apt-get install -y libusb-1.0-0-dev
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libusb-1.0-0-dev
     
     - name: Install dependencies
       run: |
+        pip install --upgrade pip
         pip install pyinstaller
         pip install -r requirements.txt
     
-    - name: Build executable
+    - name: Build with spec file
       run: |
-        pyinstaller --onefile \
-          --name "TrollRestore-Linux" \
-          --console \
-          --hidden-import pymobiledevice3 \
-          --hidden-import sparserestore \
-          --collect-all pymobiledevice3 \
-          --collect-all sparserestore \
-          trollstore.py
+        pyinstaller trollstore.spec --clean --noconfirm
+        mv dist/TrollRestore dist/TrollRestore-Linux-x86_64
     
-    - name: Upload
+    - name: Upload artifact
       uses: actions/upload-artifact@v4
       with:
-        name: TrollRestore-Linux
-        path: dist/TrollRestore-Linux
+        name: TrollRestore-Linux-x86_64
+        path: dist/TrollRestore-Linux-x86_64
+
+  build-linux-arm64:
+    runs-on: ubuntu-24.04-arm
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+        architecture: 'arm64'
+    
+    - name: Install libusb
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libusb-1.0-0-dev
+    
+    - name: Install dependencies
+      run: |
+        pip install --upgrade pip
+        pip install pyinstaller
+        pip install -r requirements.txt
+    
+    - name: Build with spec file
+      run: |
+        pyinstaller trollstore.spec --clean --noconfirm
+        mv dist/TrollRestore dist/TrollRestore-Linux-ARM64
+    
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: TrollRestore-Linux-ARM64
+        path: dist/TrollRestore-Linux-ARM64

@@ -26,7 +26,7 @@ jobs:
     
     - name: Build with spec file
       run: |
-        pyinstaller trollstore.spec --clean --noconfirm
+        pyinstaller TrollRestore.spec --clean --noconfirm
         copy dist\TrollRestore.exe dist\TrollRestore-Windows-x64.exe
     
     - name: Upload artifact
@@ -54,7 +54,7 @@ jobs:
     
     - name: Build 32-bit with spec file
       run: |
-        pyinstaller trollstore.spec --clean --noconfirm
+        pyinstaller TrollRestore.spec --clean --noconfirm
         copy dist\TrollRestore.exe dist\TrollRestore-Windows-x86.exe
     
     - name: Upload artifact
@@ -84,7 +84,7 @@ jobs:
     
     - name: Build with spec file
       run: |
-        pyinstaller trollstore.spec --clean --noconfirm
+        pyinstaller TrollRestore.spec --clean --noconfirm
         mv dist/TrollRestore dist/TrollRestore-macOS-Intel
     
     - name: Upload artifact
@@ -114,7 +114,7 @@ jobs:
     
     - name: Build with spec file
       run: |
-        pyinstaller trollstore.spec --clean --noconfirm
+        pyinstaller TrollRestore.spec --clean --noconfirm
         mv dist/TrollRestore dist/TrollRestore-macOS-ARM64
     
     - name: Upload artifact
@@ -146,7 +146,7 @@ jobs:
     
     - name: Build with spec file
       run: |
-        pyinstaller trollstore.spec --clean --noconfirm
+        pyinstaller TrollRestore.spec --clean --noconfirm
         mv dist/TrollRestore dist/TrollRestore-Linux-x86_64
     
     - name: Upload artifact
@@ -179,7 +179,7 @@ jobs:
     
     - name: Build with spec file
       run: |
-        pyinstaller trollstore.spec --clean --noconfirm
+        pyinstaller TrollRestore.spec --clean --noconfirm
         mv dist/TrollRestore dist/TrollRestore-Linux-ARM64
     
     - name: Upload artifact

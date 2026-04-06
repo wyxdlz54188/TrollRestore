@@ -4,7 +4,6 @@ import traceback
 from pathlib import Path
 
 import click
-import requests
 from packaging.version import parse as parse_version
 from pymobiledevice3.cli.cli_common import Command
 from pymobiledevice3.exceptions import NoDeviceConnectedError, PyMobileDevice3Exception
@@ -23,8 +22,10 @@ def exit(code=0):
 
 
 @click.command(cls=Command)
+@click.option('--helper-file', '-f', type=click.Path(exists=True, readable=True, dir_okay=False, path_type=Path),
+              help='Path to the TrollStore Helper file (PersistenceHelper_Embedded)')
 @click.pass_context
-def cli(ctx, service_provider: LockdownClient) -> None:
+def cli(ctx, service_provider: LockdownClient, helper_file: Path = None) -> None:
     os_names = {
         "iPhone": "iOS",
         "iPad": "iPadOS",
@@ -55,6 +56,35 @@ def cli(ctx, service_provider: LockdownClient) -> None:
         click.secho(f"{os_name}{device_version} ({device_build}) is not supported.", fg="red")
         click.secho("This tool is only compatible with iOS/iPadOS 15.0 - 16.7 RC and 17.0.", fg="red")
         return
+
+    # 获取TrollStore Helper文件内容
+    helper_contents = None
+    if helper_file:
+        try:
+            helper_contents = helper_file.read_bytes()
+            click.secho(f"Loaded TrollStore Helper from: {helper_file}", fg="green")
+        except Exception as e:
+            click.secho(f"Failed to read helper file: {e}", fg="red")
+            return
+    else:
+        # 如果没有通过命令行参数指定，则交互式询问
+        click.secho("\nPlease provide the TrollStore Helper file (PersistenceHelper_Embedded)", fg="yellow")
+        helper_path_str = click.prompt("Enter the path to the helper file", type=str)
+        helper_path = Path(helper_path_str).expanduser().resolve()
+        
+        if not helper_path.exists():
+            click.secho(f"File not found: {helper_path}", fg="red")
+            return
+        if not helper_path.is_file():
+            click.secho(f"Not a file: {helper_path}", fg="red")
+            return
+            
+        try:
+            helper_contents = helper_path.read_bytes()
+            click.secho(f"Loaded TrollStore Helper from: {helper_path}", fg="green")
+        except Exception as e:
+            click.secho(f"Failed to read helper file: {e}", fg="red")
+            return
 
     app = click.prompt(
         """
@@ -88,13 +118,6 @@ Enter the app name"""
 
     app_uuid = app_path.parent.name
 
-    try:
-        response = requests.get("https://github.com/opa334/TrollStore/releases/latest/download/PersistenceHelper_Embedded")
-        response.raise_for_status()
-        helper_contents = response.content
-    except Exception as e:
-        click.secho(f"Failed to download TrollStore Helper: {e}", fg="red")
-        return
     click.secho(f"Replacing {app} with TrollStore Helper. (UUID: {app_uuid})", fg="yellow")
 
     back = backup.Backup(
